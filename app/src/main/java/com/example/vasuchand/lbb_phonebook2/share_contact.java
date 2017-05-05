@@ -1,5 +1,6 @@
 package com.example.vasuchand.lbb_phonebook2;
 
+import android.app.Activity;
 import android.content.ContentProviderClient;
 import android.content.ContentResolver;
 import android.content.ContentUris;
@@ -15,8 +16,10 @@ import android.provider.MediaStore;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.example.vasuchand.lbb_phonebook2.Adapters.adapter;
 import com.example.vasuchand.lbb_phonebook2.Adapters.phonetype_adapter;
@@ -42,9 +45,16 @@ public class share_contact extends AppCompatActivity {
     phonetype_data data;
     public List<phonetype_data> content= new ArrayList<>();
 
-    ImageView image ;
     Context context = share_contact.this;
-    TextView user_name;
+    String contactid="";
+    static int phone_type_mobile=0;
+    static int phone_type_address=1;
+    static  int phone_type_email=2;
+
+    int recyclerview_header=0;
+    int recylerview_data=1;
+    String name="";
+    Bitmap ImageBitmap=null;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -61,16 +71,36 @@ public class share_contact extends AppCompatActivity {
         RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(getApplicationContext());
         recyclerView.setLayoutManager(layoutManager);
         recyclerView.setNestedScrollingEnabled(false);
-        adapter = new phonetype_adapter(share_contact.this, content);
 
 
-        image = (ImageView)findViewById(R.id.image);
-        user_name = (TextView)findViewById(R.id.user_name);
+
+
 
         Intent intent = getIntent();
-        String contactid = intent.getStringExtra("contactid");
+        contactid = intent.getStringExtra("contactid");
+
+        /*
+          header case
+         */
+        data = new phonetype_data(recyclerview_header,"","",4);
+        content.add(data);
 
 
+        //getmobile number
+        contacttype_mobile();
+        //get emailid
+        contacttype_email();
+        // get address
+        contacttype_address();
+
+        adapter = new phonetype_adapter(share_contact.this, content,name,ImageBitmap);
+        recyclerView.setAdapter(adapter);
+        adapter.notifyDataSetChanged();
+
+    }
+
+    public void contacttype_mobile()
+    {
         if(contactid!=null) {
             contentResolver = getContentResolver();
 
@@ -85,13 +115,13 @@ public class share_contact extends AppCompatActivity {
                 {
 
                     String number = cursor.getString(cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER));
-                    String name = cursor.getString(cursor.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME));
+                     name = cursor.getString(cursor.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME));
                     number= number.replaceAll("[^0-9]","");
 
                     /*
                        username
                      */
-                    user_name.setText(name);
+                   /// user_name.setText(name);
 
                     Uri person = ContentUris.withAppendedId(ContactsContract.Contacts.CONTENT_URI, Long
                             .parseLong(contactid));
@@ -136,7 +166,7 @@ public class share_contact extends AppCompatActivity {
                             break;
                     }
                     if (!mobileNoSet.contains(number)) {
-                        data = new phonetype_data(types,number);
+                        data = new phonetype_data(recylerview_data,types,number,phone_type_mobile);
                         content.add(data);
                         mobileNoSet.add(number);
                     }
@@ -146,11 +176,48 @@ public class share_contact extends AppCompatActivity {
             }
 
         }
-
-        adapter.notifyDataSetChanged();
-        recyclerView.setAdapter(adapter);
-
     }
+
+    public void contacttype_email()
+    {
+        Cursor emailCur = contentResolver.query(ContactsContract.CommonDataKinds.Email.CONTENT_URI, null, ContactsContract.CommonDataKinds.Email.CONTACT_ID + " = ?", new String[]{contactid}, null);
+
+        while (emailCur.moveToNext()) {
+
+            String email = emailCur.getString(emailCur.getColumnIndex(ContactsContract.CommonDataKinds.Email.DATA));
+            data = new phonetype_data(recylerview_data,"",email,phone_type_email);
+            content.add(data);
+            //autoCompleteAdapter.add(name + " - " + email);
+
+        }
+
+        emailCur.close();
+    }
+
+    public void contacttype_address()
+    {
+        Uri postal_uri = ContactsContract.CommonDataKinds.StructuredPostal.CONTENT_URI;
+        Cursor postal_cursor  = getContentResolver().query(postal_uri,null,  ContactsContract.Data.CONTACT_ID + "="+contactid, null,null);
+        while(postal_cursor.moveToNext())
+        {
+            String Strt = postal_cursor.getString(postal_cursor.getColumnIndex(ContactsContract.CommonDataKinds.StructuredPostal.STREET));
+            String Cty = postal_cursor.getString(postal_cursor.getColumnIndex(ContactsContract.CommonDataKinds.StructuredPostal.CITY));
+            String cntry = postal_cursor.getString(postal_cursor.getColumnIndex(ContactsContract.CommonDataKinds.StructuredPostal.COUNTRY));
+
+            if(Strt==null)
+                Strt ="";
+            if(Cty==null)
+                Cty="";
+            if(cntry==null)
+                cntry="";
+            String add = Strt + " " +Cty + " " +cntry;
+            data = new phonetype_data(recylerview_data,"",add,phone_type_address);
+            content.add(data);
+
+        }
+        postal_cursor.close();
+    }
+
 
     public void setImage(Uri uri)
     {
@@ -162,8 +229,20 @@ public class share_contact extends AppCompatActivity {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        if(bitmap!=null) {
-            image.setImageBitmap(bitmap);
-        }
+//        if(bitmap!=null) {
+//            //image.setImageBitmap(bitmap);
+//        }
+        ImageBitmap = bitmap;
     }
+
+
+    @Override
+    public void onBackPressed() {
+        // do something on back.
+
+        Intent intent = new Intent(share_contact.this , MainActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        startActivity(intent);
+    }
+
 }

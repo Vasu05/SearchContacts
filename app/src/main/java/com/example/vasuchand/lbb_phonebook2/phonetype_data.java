@@ -6,13 +6,27 @@ package com.example.vasuchand.lbb_phonebook2;
 
 public class phonetype_data {
     private String phonetype,number;
+    private int contacttype,view;
 
+    public int getView() {
+        return view;
+    }
 
+    public void setView(int view) {
+        this.view = view;
+    }
 
-    public phonetype_data(String phonetype, String number) {
+    public int getContacttype() {
+        return contacttype;
+    }
 
+    public phonetype_data(int view,String phonetype, String number, int contacttype) {
+
+        this.view = view;
         this.phonetype = phonetype;
         this.number = number;
+        this.contacttype = contacttype;
+
     }
 
     public void setPhonetype(String phonetype) {
